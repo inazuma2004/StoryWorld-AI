@@ -11,6 +11,15 @@ Language = Literal["fr", "en", "ar"]
 PanelStatus = Literal["pending", "generated", "error"]
 
 
+class StoryBrief(BaseModel):
+    idea: str = Field(min_length=1)
+    genre: Genre
+    style: Style
+    audience: Audience
+    language: Language
+    panel_count: int = Field(ge=1, le=12)
+
+
 class CharacterDraft(BaseModel):
     name: str = Field(min_length=1)
     role: str = Field(min_length=1)
