@@ -23,7 +23,12 @@ def build_text_provider(settings) -> TextProvider:  # type: ignore[valid-type]
         )
 
     if settings.text_provider == "ollama":
-        raise ProviderError("Provider Ollama non encore implémenté")
+        from storyworld.providers.ollama import OllamaTextProvider
+
+        return OllamaTextProvider(
+            base_url=settings.ollama_base_url,
+            model="llama3.2:1b",
+        )
 
     raise ProviderError(
         f"Provider texte non implémenté : {settings.text_provider}"
