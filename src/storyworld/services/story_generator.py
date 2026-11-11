@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from storyworld.config import Settings
-from storyworld.domain.models import StoryBrief, StoryDraft
+from storyworld.domain.models import (
+    CharacterDraft,
+    StoryBrief,
+    StoryDraft,
+)
 from storyworld.providers.base import ImageProvider, TextProvider
+from storyworld.services.image_generator import ImageGenerator
 from storyworld.storage import Repository
 
 
@@ -37,7 +44,22 @@ class StoryGenerator:
         )
 
     def _generate_images(self, story: StoryDraft, project_id: str) -> None:
-        # Génération des images par case (Mock pour l'instant, vraie provider plus tard)
+        output_dir: Path = self.settings.data_dir / "media" / "panels"
+        image_gen = ImageGenerator(self.image_provider, output_dir)
+        reference_character: CharacterDraft | None = (
+            story.characters[0] if story.characters else None
+        )
+
         for scene in story.scenes:
             for panel in scene.panels:
-                self.image_provider.generate(panel.description_visuelle)
+                try:
+                    if reference_character:
+                        path = image_gen.generate_panel_image(
+                            scene, reference_character, "manga", panel.numero
+                        )
+                        panel.image_path = str(path)
+                        panel.status = "generated"
+                    else:
+                        panel.status = "error"
+                except Exception:  # noqa: BLE001 — statut passé à "error" en cas d'échec générateur
+                    panel.status = "error"

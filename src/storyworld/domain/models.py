@@ -34,6 +34,8 @@ class PanelDraft(BaseModel):
     description_visuelle: str = Field(min_length=1)
     dialogue: str
     personnages: list[str] = Field(default_factory=list)
+    status: PanelStatus = "pending"
+    image_path: str | None = None
 
 
 class SceneDraft(BaseModel):
