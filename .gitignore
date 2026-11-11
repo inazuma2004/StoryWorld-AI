@@ -1,0 +1,29 @@
+# Environnement
+.venv/
+.env
+.env.local
+
+# Données et médias générés
+data/
+*.pdf
+*.png
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Build / packaging
+*.egg-info/
+*.egg
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
