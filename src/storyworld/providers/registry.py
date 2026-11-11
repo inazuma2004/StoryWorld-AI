@@ -1,13 +1,46 @@
-from storyworld.providers.base import ImageProvider, TextProvider
+"""Registre des providers texte et image."""
+
+from __future__ import annotations
+
+from storyworld.providers.base import ImageProvider, ProviderError, TextProvider
 
 
 def build_text_provider(settings) -> TextProvider:  # type: ignore[valid-type]
-    from storyworld.providers.mock import build_text_provider as _btp
+    if settings.text_provider == "mock":
+        from storyworld.providers.mock import MockTextProvider
 
-    return _btp(settings)
+        return MockTextProvider()
+
+    if settings.text_provider == "gemini":
+        if not settings.gemini_api_key:
+            raise ProviderError(
+                "GEMINI_API_KEY est requis pour utiliser text_provider=gemini"
+            )
+        from storyworld.providers.gemini import GeminiTextProvider
+
+        return GeminiTextProvider(
+            api_key=settings.gemini_api_key.get_secret_value()
+        )
+
+    if settings.text_provider == "ollama":
+        raise ProviderError("Provider Ollama non encore implémenté")
+
+    raise ProviderError(
+        f"Provider texte non implémenté : {settings.text_provider}"
+    )
 
 
 def build_image_provider(settings) -> ImageProvider:  # type: ignore[valid-type]
-    from storyworld.providers.mock import build_image_provider as _bip
+    if settings.image_provider == "mock":
+        from storyworld.providers.mock import MockImageProvider
 
-    return _bip(settings)
+        return MockImageProvider()
+
+    if settings.image_provider in ("hf", "pollinations"):
+        raise ProviderError(
+            f"Provider image {settings.image_provider} non encore implémenté"
+        )
+
+    raise ProviderError(
+        f"Provider image non implémenté : {settings.image_provider}"
+    )
