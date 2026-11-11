@@ -41,10 +41,19 @@ def build_image_provider(settings) -> ImageProvider:  # type: ignore[valid-type]
 
         return MockImageProvider()
 
-    if settings.image_provider in ("hf", "pollinations"):
-        raise ProviderError(
-            f"Provider image {settings.image_provider} non encore implémenté"
+    if settings.image_provider == "hf":
+        if not settings.hf_token:
+            raise ProviderError(
+                "HF_TOKEN est requis pour utiliser image_provider=hf"
+            )
+        from storyworld.providers.hf import HuggingFaceImageProvider
+
+        return HuggingFaceImageProvider(
+            token=settings.hf_token.get_secret_value()
         )
+
+    if settings.image_provider == "pollinations":
+        raise ProviderError("Provider image Pollinations non encore implémenté")
 
     raise ProviderError(
         f"Provider image non implémenté : {settings.image_provider}"
