@@ -29,6 +29,14 @@ class MockTextProvider:
                     "vetements": "sweat à capuche et jean",
                     "couleurs": "bleu marine et gris",
                     "attributs_distinctifs": "lunettes de réparation",
+                },
+                {
+                    "name": "Robot",
+                    "role": "compagnon",
+                    "personnalite": "calme et serviable",
+                    "vetements": "corps métallique argenté",
+                    "couleurs": "argent et bleu",
+                    "attributs_distinctifs": "yeux bleus lumineux",
                 }
             ],
             "scenes": [

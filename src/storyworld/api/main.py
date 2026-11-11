@@ -10,7 +10,8 @@ from pydantic import BaseModel
 
 from storyworld.config import Settings
 from storyworld.domain.models import StoryBrief, StoryDraft
-from storyworld.providers.mock import MockImageProvider, MockTextProvider
+from storyworld.domain.validation import validate_story
+from storyworld.providers.registry import build_image_provider, build_text_provider
 from storyworld.services.story_generator import StoryGenerator
 from storyworld.storage import Repository, create_session_factory
 
@@ -102,9 +103,11 @@ def create_project(payload: ProjectIn, repo: Annotated[Repository, Depends(get_r
 @app.post("/api/v1/generate", response_model=dict)
 def generate_story(payload: GenerationIn, repo: Annotated[Repository, Depends(get_repository)]):
     settings = get_settings()
+    text_provider = build_text_provider(settings)
+    image_provider = build_image_provider(settings)
     generator = StoryGenerator(
-        MockTextProvider(),
-        MockImageProvider(),
+        text_provider,
+        image_provider,
         repo,
         settings,
     )
@@ -118,6 +121,24 @@ def generate_story(payload: GenerationIn, repo: Annotated[Repository, Depends(ge
     )
     try:
         story = generator.generate(brief)
+        issues = validate_story(story, settings)
+        if issues:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Problèmes détectés dans le scénario généré",
+                    "issues": [
+                        {
+                            "code": i.code,
+                            "message": i.message,
+                            "panel_index": i.panel_index,
+                        }
+                        for i in issues
+                    ],
+                },
+            )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     return story.model_dump()
