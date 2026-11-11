@@ -95,6 +95,9 @@ class MockTextProvider:
 class MockImageProvider:
     """Génère un PNG 512x512 aplat de couleur avec le numéro de case."""
 
+    def __init__(self):
+        self.call_count = 0
+
     def generate(
         self,
         prompt: str,
@@ -102,6 +105,7 @@ class MockImageProvider:
         size: tuple[int, int] = (1024, 1024),
         seed: int | None = None,
     ) -> bytes:
+        self.call_count += 1
         del prompt, seed
         import io
 
