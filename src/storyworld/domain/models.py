@@ -32,7 +32,7 @@ class CharacterDraft(BaseModel):
 class PanelDraft(BaseModel):
     numero: int = Field(ge=1)
     description_visuelle: str = Field(min_length=1)
-    dialogue: str = Field(min_length=1, max_length=120)
+    dialogue: str
     personnages: list[str] = Field(default_factory=list)
 
 
