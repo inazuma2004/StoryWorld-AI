@@ -40,6 +40,14 @@ export function mediaUrl(path) {
   return `${API_BASE}${path}`;
 }
 
+export function exportPdfUrl(projectId) {
+  return `${API_BASE}/api/v1/projects/${projectId}/export/pdf`;
+}
+
+export function exportImagesUrl(projectId) {
+  return `${API_BASE}/api/v1/projects/${projectId}/export/images`;
+}
+
 export async function generateStory(input) {
   return request("/api/v1/generate", {
     method: "POST",

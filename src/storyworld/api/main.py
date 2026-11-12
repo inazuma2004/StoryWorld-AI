@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -13,6 +14,8 @@ from storyworld.config import Settings
 from storyworld.domain.models import StoryBrief, StoryDraft
 from storyworld.domain.validation import validate_story
 from storyworld.providers.registry import build_image_provider, build_text_provider
+from storyworld.services.composer import Composer
+from storyworld.services.exporter import Exporter
 from storyworld.services.story_generator import StoryGenerator
 from storyworld.storage import Repository, create_session_factory
 
@@ -46,7 +49,7 @@ _settings: Settings | None = None
 def get_settings() -> Settings:
     global _settings
     if _settings is None:
-        _settings = Settings(text_provider="mock", image_provider="mock")
+        _settings = Settings()
     return _settings
 
 
@@ -165,3 +168,74 @@ def generate_story(payload: GenerationIn, repo: Annotated[Repository, Depends(ge
                 relative = Path(image_path.name)
             panel["image_url"] = f"/media/{relative.as_posix()}"
     return result
+
+
+# ---------------------------------------------------------------------------
+# Export PDF / images
+# ---------------------------------------------------------------------------
+
+
+def _flatten_panels(story: StoryDraft):
+    return [panel for scene in story.scenes for panel in scene.panels]
+
+
+def _panel_images(story: StoryDraft) -> dict[int, Path]:
+    images: dict[int, Path] = {}
+    for index, panel in enumerate(_flatten_panels(story), start=1):
+        if panel.image_path:
+            path = Path(panel.image_path)
+            if path.exists():
+                images[index] = path
+    return images
+
+
+def _safe_filename(title: str) -> str:
+    cleaned = "".join(
+        char if char.isalnum() or char in ("-", "_") else "-" for char in title
+    ).strip("-")
+    return cleaned or "storyworld"
+
+
+def _get_story_or_404(repo: Repository, project_id: str) -> StoryDraft:
+    story = repo.get_project(project_id)
+    if story is None:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    return story
+
+
+@app.get("/api/v1/projects/{project_id}/export/pdf")
+def export_project_pdf(
+    project_id: str,
+    repo: Annotated[Repository, Depends(get_repository)],
+):
+    story = _get_story_or_404(repo, project_id)
+    settings = get_settings()
+    export_dir = settings.data_dir / "exports" / project_id
+
+    pages = Composer().compose_story(story, _panel_images(story), export_dir)
+    pdf_path = Exporter().export_pdf(story, pages, export_dir / "story.pdf")
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{_safe_filename(story.title)}.pdf",
+    )
+
+
+@app.get("/api/v1/projects/{project_id}/export/images")
+def export_project_images(
+    project_id: str,
+    repo: Annotated[Repository, Depends(get_repository)],
+):
+    story = _get_story_or_404(repo, project_id)
+    settings = get_settings()
+    export_dir = settings.data_dir / "exports" / project_id
+
+    zip_path = Exporter().export_png_zip(
+        story, _panel_images(story), export_dir / "images.zip"
+    )
+    return FileResponse(
+        zip_path,
+        media_type="application/zip",
+        filename=f"{_safe_filename(story.title)}-images.zip",
+    )

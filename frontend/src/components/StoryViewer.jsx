@@ -1,4 +1,4 @@
-import { mediaUrl } from "../services/api";
+import { exportImagesUrl, exportPdfUrl, mediaUrl } from "../services/api";
 
 export default function StoryViewer({ story }) {
   if (!story) return null;
@@ -7,6 +7,21 @@ export default function StoryViewer({ story }) {
     <section className="card" aria-label="Histoire générée">
       <h2>{story.title}</h2>
       <p className="synopsis">{story.synopsis}</p>
+
+      {story.project_id && (
+        <div className="actions">
+          <a className="btn" href={exportPdfUrl(story.project_id)} download>
+            Télécharger le PDF
+          </a>
+          <a
+            className="btn btn-secondary"
+            href={exportImagesUrl(story.project_id)}
+            download
+          >
+            Télécharger les images (ZIP)
+          </a>
+        </div>
+      )}
 
       <h3>Personnages</h3>
       <ul className="list">

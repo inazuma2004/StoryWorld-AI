@@ -49,3 +49,4 @@ class StoryDraft(BaseModel):
     synopsis: str = Field(min_length=1)
     characters: list[CharacterDraft] = Field(min_length=1)
     scenes: list[SceneDraft] = Field(min_length=1)
+    project_id: str | None = None

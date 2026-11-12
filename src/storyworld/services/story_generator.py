@@ -32,8 +32,9 @@ class StoryGenerator:
         prompt = self._build_prompt(brief)
         raw = self.text_provider.generate_json(prompt, StoryDraft)
         story = StoryDraft.model_validate(raw)
+        self._generate_images(story, brief.style)
         project_id = self.repository.save_project(story)
-        self._generate_images(story, project_id)
+        story.project_id = project_id
         return story
 
     def _build_prompt(self, brief: StoryBrief) -> str:
@@ -43,7 +44,7 @@ class StoryGenerator:
             f"Public : {brief.audience}. Langue : {brief.language}."
         )
 
-    def _generate_images(self, story: StoryDraft, project_id: str) -> None:
+    def _generate_images(self, story: StoryDraft, style: str) -> None:
         output_dir: Path = self.settings.data_dir / "media" / "panels"
         image_gen = ImageGenerator(self.image_provider, output_dir)
         reference_character: CharacterDraft | None = (
@@ -55,7 +56,7 @@ class StoryGenerator:
                 try:
                     if reference_character:
                         path = image_gen.generate_panel_image(
-                            scene, reference_character, "manga", panel.numero
+                            scene, reference_character, style, panel.numero
                         )
                         panel.image_path = str(path)
                         panel.status = "generated"
