@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from storyworld.config import Settings
@@ -24,6 +25,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Fichiers médias (images générées) servis au frontend
+# ---------------------------------------------------------------------------
+
+from pathlib import Path
+
+_media_dir = Settings().data_dir / "media"
+_media_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(_media_dir)), name="media")
 
 # ---------------------------------------------------------------------------
 # Dépendances
@@ -141,4 +152,16 @@ def generate_story(payload: GenerationIn, repo: Annotated[Repository, Depends(ge
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return story.model_dump()
+    result = story.model_dump()
+    media_root = (settings.data_dir / "media").resolve()
+    for scene in result["scenes"]:
+        for panel in scene["panels"]:
+            if not panel.get("image_path"):
+                continue
+            image_path = Path(panel["image_path"]).resolve()
+            try:
+                relative = image_path.relative_to(media_root)
+            except ValueError:
+                relative = Path(image_path.name)
+            panel["image_url"] = f"/media/{relative.as_posix()}"
+    return result

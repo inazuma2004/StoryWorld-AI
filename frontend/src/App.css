@@ -29,6 +29,21 @@
   gap: 0.5rem;
 }
 
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.form-actions .btn {
+  width: 100%;
+}
+
 .form-group label {
   font-weight: 600;
   font-size: 0.9rem;
@@ -58,6 +73,7 @@
 }
 
 .error {
+  grid-column: 1 / -1;
   color: #dc2626;
   background: #fef2f2;
   padding: 0.75rem;
@@ -70,6 +86,7 @@
   border-radius: 0.375rem;
   padding: 1rem;
   background: #f9fafb;
+  margin-bottom: 1rem;
 }
 
 .panels {
@@ -83,16 +100,40 @@
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   padding: 0.75rem;
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
   background: #fff;
+  margin: 0;
+}
+
+.panel-image {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+
+.panel-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .panel-placeholder {
-  height: 120px;
-  background: #e5e7eb;
-  border-radius: 0.25rem;
-  margin-bottom: 0.5rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.5rem;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.synopsis {
+  color: #4b5563;
 }
 
 .dialogue {

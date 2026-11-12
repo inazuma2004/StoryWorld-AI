@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { generateStory } from "../services/api";
 
+const GENRES = ["aventure", "fantastique", "science-fiction", "comedie", "educatif"];
+const STYLES = ["manga", "cartoon", "aquarelle", "comics"];
+const AUDIENCES = ["enfant", "adolescent", "adulte"];
+const LANGUAGES = ["fr", "en"];
+
 export default function StoryForm({ onStoryGenerated }) {
   const [idea, setIdea] = useState("");
   const [genre, setGenre] = useState("aventure");
@@ -11,28 +16,22 @@ export default function StoryForm({ onStoryGenerated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const genres = ["aventure", "fantastique", "science-fiction", "comedie", "educatif"];
-  const styles = ["manga", "cartoon", "aquarelle", "comics"];
-  const audiences = ["enfant", "adolescent", "adulte"];
-  const languages = ["fr", "en"];
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const input = {
+      const story = await generateStory({
         idea,
         genre,
         style,
         audience,
         language,
         panel_count: panelCount,
-      };
-      const story = await generateStory(input);
+      });
       onStoryGenerated(story);
     } catch (err) {
-      setError(err?.response?.data?.detail || err.message || "Erreur lors de la génération");
+      setError(err.message || "Erreur lors de la génération");
     } finally {
       setLoading(false);
     }
@@ -41,10 +40,11 @@ export default function StoryForm({ onStoryGenerated }) {
   return (
     <section className="card">
       <h2>Créer une histoire</h2>
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="form-grid">
         <div className="form-group">
-          <label>Idée de l'histoire</label>
+          <label htmlFor="idea">Idée de l'histoire</label>
           <input
+            id="idea"
             type="text"
             placeholder="Ex: un robot découvre un jardin à Casablanca"
             value={idea}
@@ -53,9 +53,9 @@ export default function StoryForm({ onStoryGenerated }) {
           />
         </div>
         <div className="form-group">
-          <label>Genre</label>
-          <select value={genre} onChange={(e) => setGenre(e.target.value)}>
-            {genres.map((g) => (
+          <label htmlFor="genre">Genre</label>
+          <select id="genre" value={genre} onChange={(e) => setGenre(e.target.value)}>
+            {GENRES.map((g) => (
               <option key={g} value={g}>
                 {g.charAt(0).toUpperCase() + g.slice(1)}
               </option>
@@ -63,9 +63,9 @@ export default function StoryForm({ onStoryGenerated }) {
           </select>
         </div>
         <div className="form-group">
-          <label>Style visuel</label>
-          <select value={style} onChange={(e) => setStyle(e.target.value)}>
-            {styles.map((s) => (
+          <label htmlFor="style">Style visuel</label>
+          <select id="style" value={style} onChange={(e) => setStyle(e.target.value)}>
+            {STYLES.map((s) => (
               <option key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </option>
@@ -73,24 +73,25 @@ export default function StoryForm({ onStoryGenerated }) {
           </select>
         </div>
         <div className="form-group">
-          <label>Public cible</label>
-          <select value={audience} onChange={(e) => setAudience(e.target.value)}>
-            {audiences.map((a) => (
+          <label htmlFor="audience">Public cible</label>
+          <select id="audience" value={audience} onChange={(e) => setAudience(e.target.value)}>
+            {AUDIENCES.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
         </div>
         <div className="form-group">
-          <label>Langue</label>
-          <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-            {languages.map((l) => (
+          <label htmlFor="language">Langue</label>
+          <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)}>
+            {LANGUAGES.map((l) => (
               <option key={l} value={l}>{l.toUpperCase()}</option>
             ))}
           </select>
         </div>
         <div className="form-group">
-          <label>Nombre de cases</label>
+          <label htmlFor="panel-count">Nombre de cases</label>
           <input
+            id="panel-count"
             type="number"
             min={1}
             max={12}
@@ -98,12 +99,16 @@ export default function StoryForm({ onStoryGenerated }) {
             onChange={(e) => setPanelCount(Math.max(1, Math.min(12, Number(e.target.value))))}
           />
         </div>
-        <div className="form-group col-span-full">
+        <div className="form-actions">
           <button type="submit" disabled={loading} className="btn">
             {loading ? "Génération en cours…" : "Générer l'histoire"}
           </button>
         </div>
-        {error && <div className="error" role="alert">{error}</div>}
+        {error && (
+          <div className="error" role="alert" aria-live="assertive">
+            {error}
+          </div>
+        )}
       </form>
     </section>
   );
