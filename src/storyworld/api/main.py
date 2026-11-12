@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+import json
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,15 @@ from pydantic import BaseModel
 from storyworld.config import Settings
 from storyworld.domain.models import StoryBrief, StoryDraft
 from storyworld.domain.validation import validate_story
+from storyworld.lab.models import VAE, DCGANDiscriminator, DCGANGenerator
+from storyworld.lab.train import (
+    make_fashion_mnist_loader,
+    resolve_device,
+    save_dcgan_samples,
+    save_vae_samples,
+    train_dcgan,
+    train_vae,
+)
 from storyworld.providers.registry import build_image_provider, build_text_provider
 from storyworld.services.composer import Composer
 from storyworld.services.exporter import Exporter
@@ -38,6 +48,10 @@ from pathlib import Path
 _media_dir = Settings().data_dir / "media"
 _media_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=str(_media_dir)), name="media")
+
+_lab_dir = Settings().data_dir / "lab"
+_lab_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/lab-media", StaticFiles(directory=str(_lab_dir)), name="lab-media")
 
 # ---------------------------------------------------------------------------
 # Dépendances
@@ -239,3 +253,115 @@ def export_project_images(
         media_type="application/zip",
         filename=f"{_safe_filename(story.title)}-images.zip",
     )
+
+
+# ---------------------------------------------------------------------------
+# Laboratoire VAE / DCGAN
+# ---------------------------------------------------------------------------
+
+
+class LabTrainIn(BaseModel):
+    epochs: int = 1
+    limit_batches: int = 10
+    batch_size: int = 32
+    latent_dim: int = 16
+
+
+def _lab_samples(settings: Settings) -> dict:
+    lab_dir = settings.data_dir / "lab"
+    vae_samples = {
+        "reconstructions": "/lab-media/vae_reconstructions.png",
+        "interpolation": "/lab-media/vae_interpolation.png",
+    }
+    vae_available = all((lab_dir / Path(url).name).exists() for url in vae_samples.values())
+
+    dcgan_samples = {"samples": "/lab-media/dcgan_samples.png"}
+    dcgan_available = (lab_dir / "dcgan_samples.png").exists()
+
+    return {
+        "vae": {
+            "available": vae_available,
+            "samples": vae_samples if vae_available else {},
+            "history": _read_json(lab_dir / "vae_history.json"),
+        },
+        "dcgan": {
+            "available": dcgan_available,
+            "samples": dcgan_samples if dcgan_available else {},
+            "history": _read_json(lab_dir / "dcgan_history.json"),
+        },
+    }
+
+
+def _read_json(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+@app.get("/api/v1/lab/status")
+def lab_status():
+    return _lab_samples(get_settings())
+
+
+@app.post("/api/v1/lab/train/{model}")
+def lab_train(model: Literal["vae", "dcgan"], payload: LabTrainIn | None = None):
+    payload = payload or LabTrainIn()
+    settings = get_settings()
+    lab_dir = settings.data_dir / "lab"
+    lab_dir.mkdir(parents=True, exist_ok=True)
+
+    epochs = max(1, min(payload.epochs, 3))
+    limit_batches = max(1, min(payload.limit_batches, 200))
+    batch_size = max(4, min(payload.batch_size, 256))
+    latent_dim = max(2, min(payload.latent_dim, 128))
+
+    loader = make_fashion_mnist_loader(
+        settings.data_dir / "fashion_mnist", batch_size=batch_size
+    )
+    device = resolve_device("auto")
+
+    if model == "vae":
+        vae = VAE(latent_dim=latent_dim)
+        history = train_vae(
+            vae,
+            loader,
+            epochs=epochs,
+            device=device,
+            limit_batches=limit_batches,
+            checkpoint_path=lab_dir / "vae.pt",
+        )
+        samples = save_vae_samples(vae, loader, lab_dir, device)
+        history_path = lab_dir / "vae_history.json"
+        sample_urls = {
+            "reconstructions": "/lab-media/vae_reconstructions.png",
+            "interpolation": "/lab-media/vae_interpolation.png",
+        }
+    else:
+        generator = DCGANGenerator(latent_dim=latent_dim)
+        discriminator = DCGANDiscriminator()
+        history = train_dcgan(
+            generator,
+            discriminator,
+            loader,
+            epochs=epochs,
+            device=device,
+            limit_batches=limit_batches,
+            checkpoint_path=lab_dir / "dcgan.pt",
+        )
+        samples = {"samples": save_dcgan_samples(generator, lab_dir, device)}
+        history_path = lab_dir / "dcgan_history.json"
+        sample_urls = {"samples": "/lab-media/dcgan_samples.png"}
+
+    import json
+
+    history_path.write_text(json.dumps(history, indent=2), encoding="utf-8")
+    return {
+        "model": model,
+        "device": device,
+        "history": history,
+        "samples": sample_urls,
+        "files": {name: str(path) for name, path in samples.items()},
+    }

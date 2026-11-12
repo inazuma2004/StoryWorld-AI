@@ -48,6 +48,17 @@ export function exportImagesUrl(projectId) {
   return `${API_BASE}/api/v1/projects/${projectId}/export/images`;
 }
 
+export async function getLabStatus() {
+  return request("/api/v1/lab/status");
+}
+
+export async function trainLabModel(model, options = {}) {
+  return request(`/api/v1/lab/train/${model}`, {
+    method: "POST",
+    body: JSON.stringify(options),
+  });
+}
+
 export async function generateStory(input) {
   return request("/api/v1/generate", {
     method: "POST",

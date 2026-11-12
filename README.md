@@ -90,6 +90,42 @@ npm --prefix frontend run build
 L'interface est vérifiée avec Playwright : chargement des images, téléchargement
 PDF/ZIP, état d'erreur et affichage mobile.
 
+## Laboratoire IA (VAE / DCGAN)
+
+L'onglet « Laboratoire IA » de l'interface compare deux modèles entraînés
+localement sur Fashion-MNIST (images 28×28, noir et blanc) :
+
+- **VAE** : reconstructions (originales en haut, reconstruites en bas) et
+  interpolation linéaire entre deux vecteurs latents ;
+- **DCGAN** : échantillons produits par le générateur après entraînement.
+
+Ces modèles sont **expérimentaux** : ils illustrent l'encodeur/décodeur et le
+jeu générateur/discriminateur, mais ne génèrent pas les cases de la BD.
+
+Entraînement complet en ligne de commande (CPU, quelques minutes) :
+
+```powershell
+.\.venv\Scripts\python.exe -m storyworld.lab.train --model vae --epochs 10 --output-dir data/lab
+.\.venv\Scripts\python.exe -m storyworld.lab.train --model dcgan --epochs 10 --output-dir data/lab
+```
+
+Options utiles : `--epochs`, `--batch-size`, `--limit-batches` (smoke test),
+`--latent-dim`, `--device auto|cpu|cuda`, `--data-dir`, `--output-dir`.
+
+Les artefacts sont écrits dans `data/lab/` (`vae.pt`, `dcgan.pt`,
+`vae_history.json`, `dcgan_history.json`, grilles PNG) puis servis par l'API
+sur `/lab-media/`. Endpoints :
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| `GET` | `/api/v1/lab/status` | disponibilité des artefacts + historiques |
+| `POST` | `/api/v1/lab/train/{vae\|dcgan}` | entraînement court (démo, borné) |
+
+Le bouton « Entraîner (démo) » lance 1 epoch sur 10 lots : il vérifie le
+pipeline, pas la qualité visuelle. Un entraînement complet sur GPU (Colab,
+Kaggle) donne de meilleurs résultats ; `--device auto` sélectionne CUDA s'il
+est disponible.
+
 ## Limites connues
 
 - Les providers réels nécessitent une clé API (Gemini, Hugging Face) ou une
