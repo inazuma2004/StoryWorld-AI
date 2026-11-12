@@ -53,7 +53,15 @@ def build_image_provider(settings) -> ImageProvider:  # type: ignore[valid-type]
         )
 
     if settings.image_provider == "pollinations":
-        raise ProviderError("Provider image Pollinations non encore implémenté")
+        from storyworld.providers.pollinations import PollinationsImageProvider
+
+        return PollinationsImageProvider(
+            token=(
+                settings.pollinations_token.get_secret_value()
+                if settings.pollinations_token
+                else None
+            )
+        )
 
     raise ProviderError(
         f"Provider image non implémenté : {settings.image_provider}"

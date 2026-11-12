@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     image_provider: Literal["mock", "hf", "pollinations"] = "mock"
     gemini_api_key: SecretStr | None = None
     hf_token: SecretStr | None = None
+    pollinations_token: SecretStr | None = None
     ollama_base_url: str = "http://localhost:11434"
     data_dir: Path = Path("data")
     max_panels: int = 12

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import io
 from pathlib import Path
 
+from PIL import Image
+
 from storyworld.domain.models import CharacterDraft, SceneDraft, Style
-from storyworld.providers.base import ImageProvider
+from storyworld.providers.base import ImageProvider, ProviderError
 from storyworld.services.prompt_builder import build_image_prompt
 
 
@@ -38,5 +41,12 @@ class ImageGenerator:
             return output_path
 
         image_bytes = self.image_provider.generate(prompt)
-        output_path.write_bytes(image_bytes)
+        try:
+            with Image.open(io.BytesIO(image_bytes)) as image:
+                normalized = image.convert("RGB")
+                normalized.save(output_path, format="PNG")
+        except Exception as exc:
+            raise ProviderError(
+                "Le provider d'images a renvoyé un contenu illisible"
+            ) from exc
         return output_path

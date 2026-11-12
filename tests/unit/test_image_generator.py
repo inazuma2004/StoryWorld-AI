@@ -67,3 +67,33 @@ def test_image_generator_nom_fichier_hash_prompt(tmp_path):
     prompt = build_image_prompt(scene, character, "manga", 1)
     expected_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
     assert path.name == f"{expected_hash}.png"
+
+
+class _JpegProvider:
+    """Provider qui renvoie du JPEG, comme Pollinations."""
+
+    def __init__(self):
+        self.call_count = 0
+
+    def generate(self, prompt, *, size=(1024, 1024), seed=None):
+        import io
+
+        from PIL import Image
+
+        self.call_count += 1
+        buffer = io.BytesIO()
+        Image.new("RGB", (64, 64), (10, 20, 30)).save(buffer, format="JPEG")
+        return buffer.getvalue()
+
+
+def test_image_generator_normalise_le_format_en_png(tmp_path):
+    generator = ImageGenerator(_JpegProvider(), output_dir=tmp_path / "media")
+    scene, character = _build_scene_and_character()
+
+    path = generator.generate_panel_image(scene, character, "manga", 1)
+
+    from PIL import Image
+
+    with Image.open(path) as image:
+        assert image.format == "PNG"
+        assert image.size == (64, 64)
