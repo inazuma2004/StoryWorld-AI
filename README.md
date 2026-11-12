@@ -73,6 +73,8 @@ providers `mock`.
 | `STORYWORLD_HF_TOKEN` | token Hugging Face | vide |
 | `STORYWORLD_POLLINATIONS_TOKEN` | token optionnel Pollinations | vide |
 | `STORYWORLD_OLLAMA_BASE_URL` | URL Ollama | `http://localhost:11434` |
+| `STORYWORLD_OLLAMA_MODEL` | modèle Ollama | `llama3.2:1b` |
+| `STORYWORLD_OLLAMA_TIMEOUT` | délai max par génération (s) | `180` |
 | `STORYWORLD_DATA_DIR` | dossier de données | `data` |
 
 Aucun secret ne doit être commité : seul `.env.example` est versionné.

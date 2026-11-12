@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     hf_token: SecretStr | None = None
     pollinations_token: SecretStr | None = None
     ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2:1b"
+    ollama_timeout: float = 180.0
     data_dir: Path = Path("data")
     max_panels: int = 12
     max_dialogue_chars: int = 120

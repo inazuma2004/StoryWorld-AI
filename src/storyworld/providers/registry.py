@@ -27,7 +27,8 @@ def build_text_provider(settings) -> TextProvider:  # type: ignore[valid-type]
 
         return OllamaTextProvider(
             base_url=settings.ollama_base_url,
-            model="llama3.2:1b",
+            model=settings.ollama_model,
+            timeout=settings.ollama_timeout,
         )
 
     raise ProviderError(

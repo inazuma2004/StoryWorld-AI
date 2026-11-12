@@ -12,6 +12,7 @@ from storyworld.domain.models import (
 )
 from storyworld.providers.base import ImageProvider, TextProvider
 from storyworld.services.image_generator import ImageGenerator
+from storyworld.services.prompt_builder import build_story_prompt
 from storyworld.storage import Repository
 
 
@@ -38,11 +39,7 @@ class StoryGenerator:
         return story
 
     def _build_prompt(self, brief: StoryBrief) -> str:
-        return (
-            f"Génère un storyboard pour une BD de {brief.panel_count} cases. "
-            f"Idee : {brief.idea}. Genre : {brief.genre}. Style : {brief.style}. "
-            f"Public : {brief.audience}. Langue : {brief.language}."
-        )
+        return build_story_prompt(brief, StoryDraft.model_json_schema())
 
     def _generate_images(self, story: StoryDraft, style: str) -> None:
         output_dir: Path = self.settings.data_dir / "media" / "panels"
